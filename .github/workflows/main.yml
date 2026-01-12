@@ -1,0 +1,39 @@
+name: Auto Download Images
+
+on:
+  schedule:
+    # UTC Time: 22:30 PM = IST Time: 04:00 AM (Subah)
+    - cron: '30 22 * * *'
+  workflow_dispatch:  # Button to run manually anytime
+
+permissions:
+  contents: write
+
+jobs:
+  run-downloader:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests pillow urllib3
+
+      - name: Run Downloader Script
+        run: |
+          python main.py
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🤖 Auto-update: New Images Added [skip ci]"
+          branch: main
+          file_pattern: 'IMAGES/*.png failed.json'
+          push_options: '--force'
