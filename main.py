@@ -19,7 +19,7 @@ FAILED_JSON = "failed.json"
 ASTC_URL = "https://dl.cdn.freefiremobile.com/advance/ABHotUpdates/IconCDN/android/{}_rgb.astc"
 ASTC2PNG_URL = "https://astc2png.deaddos.online/"
 
-# GitHub Runners are powerful, increasing workers for IO bound tasks
+# High speed settings for GitHub Runner
 MAX_WORKERS = 20        
 RETRIES = 3
 TIMEOUT = 25
@@ -37,7 +37,7 @@ IMG_PATTERN = re.compile(r'src="data:image/png;base64,([^"]+)"')
 os.makedirs(SAVE_DIR, exist_ok=True)
 failed_items = []
 
-# Thread-local storage for sessions to prevent recreating connections
+# Thread-local storage for sessions
 thread_local = threading.local()
 
 def get_session():
@@ -57,21 +57,21 @@ def get_session():
     return thread_local.session
 
 def download_convert(item_id):
-    # Check if exists
     png_path = os.path.join(SAVE_DIR, f"{item_id}.png")
+    
+    # Agar image pehle se hai, toh skip karo (Time bachane ke liye)
     if os.path.exists(png_path):
-        return None # Skip silently to reduce log noise
+        return None 
 
     try:
         session = get_session()
 
-        # ---- ASTC DOWNLOAD ----
-        # Streaming disable karke direct load fast hoga choti files ke liye
+        # 1. Download ASTC
         r = session.get(ASTC_URL.format(item_id), timeout=TIMEOUT)
         if r.status_code != 200:
             raise Exception(f"ASTC HTTP {r.status_code}")
 
-        # ---- ASTC → PNG (Upload) ----
+        # 2. Convert to PNG
         files = {"files": (f"{item_id}.astc", r.content, "application/octet-stream")}
         resp = session.post(ASTC2PNG_URL, files=files, headers=HEADERS, timeout=TIMEOUT)
 
@@ -82,10 +82,9 @@ def download_convert(item_id):
         if not match:
             raise Exception("PNG DATA NOT FOUND")
 
-        # ---- SAVE IMAGE ----
+        # 3. Save Image
         img_data = base64.b64decode(match.group(1))
         with Image.open(io.BytesIO(img_data)) as img:
-            # Flip logic as per original script
             img = img.transpose(Image.FLIP_TOP_BOTTOM)
             img.save(png_path, optimize=True, quality=95)
 
@@ -107,13 +106,10 @@ def main():
     with open(OB52_JSON, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # Filter IDs
     item_ids = [str(i["itemID"]) for i in data if "itemID" in i]
-    
-    # Sort to keep processing orderly
     item_ids.sort()
 
-    print(f"\n🚀 TOTAL ITEMS TO CHECK: {len(item_ids)}")
+    print(f"\n🚀 STARTING JOB: {len(item_ids)} Items")
     print(f"⚡ MAX WORKERS: {MAX_WORKERS}\n")
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
@@ -124,11 +120,15 @@ def main():
             if res:
                 print(res)
 
-    # ---- SAVE FAILED ----
+    # Save failed list (overwrite old failed.json only if errors exist)
     if failed_items:
         with open(FAILED_JSON, "w", encoding="utf-8") as f:
             json.dump(failed_items, f, indent=2)
         print(f"\n⚠️ Failed items saved to: {FAILED_JSON}")
+    else:
+        # Agar koi fail nahi hua, toh purana failed.json hata do (clean cleanup)
+        if os.path.exists(FAILED_JSON):
+            os.remove(FAILED_JSON)
     
     print("\n🔥 ALL DONE")
 
