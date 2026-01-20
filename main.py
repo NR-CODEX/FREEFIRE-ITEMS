@@ -15,7 +15,7 @@ from urllib3.util.retry import Retry
 OB52_JSON = "OB52.json"
 SAVE_DIR = "IMAGE"
 
-ASTC_URL = "https://dl.cdn.freefiremobile.com/advance/ABHotUpdates/IconCDN/android/{}_rgb.astc"
+ASTC_URL = "https://dl.cdn.freefiremobile.com/live/ABHotUpdates/IconCDN/android/{}_rgb.astc"
 ASTC2PNG_URL = "https://astc2png.deaddos.online/"
 
 MAX_WORKERS = 20
