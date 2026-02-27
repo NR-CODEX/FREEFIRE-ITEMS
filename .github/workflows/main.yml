@@ -34,7 +34,7 @@ jobs:
       - name: 💾 Commit and Push Updated Images
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "🤖 Auto Update: Refresh all item images"
+          commit_message: "Auto Update: Refresh all item images"
           branch: main
           file_pattern: |
             IMAGE/*.png
